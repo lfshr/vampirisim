@@ -39,11 +39,14 @@ MutationState <- {
 	vampirismReviveHealth = 50 // Amount of health players start with when revived
 	specialHealthPoints = 25 // Special Infected give 25 health points
 	
-	MeleeWeaponID = 19 // Holds the weaponID of melee weapons. Pretty self explanatory ^^
+	MeleeWeaponID = 19 // Holds the weaponID of melee weapons.
 	maxPlayerHealth = 100 // Max player health
 	
 	//Holds the survivor instances
 	survivors = null
+	
+	//Fix for lag spike when applying health changes
+	survivorToUpdateNextFrame = null
 	
 	// Holds the infected stats
 	infected = [
@@ -116,7 +119,7 @@ HELP_TEXT_ENG <- [
 	" Tip: Shoot fellow survivors to steal their health! MUHAHAHAHAHA!"
 ]
 
-function InterceptChat( str, srcEnt ){
+function InterceptChat(str, srcEnt){
 	
 	if( str.find("/vamp_help") ){
 		foreach( idx, str in HELP_TEXT_ENG ){
@@ -137,70 +140,73 @@ function GetSurvivor(strName) {
 
 // Reload the survivors into SessionState.survivors
 function RefreshSurvivors(){
-	
 	if (!SessionState.survivors) {	
-		try{
-			if( IsL4D1Survivors() ){
-				SessionState.survivors = {
-					zoey = GetSurvivor("zoey")
-					francis = GetSurvivor("francis")
-					bill = GetSurvivor("bill")
-					louis = GetSurvivor("louis")
-				}
-				local s = SessionState.survivors
-			
-				printl("L4D1 SURVIVORS FOUND!");
-				s.zoey.playerInstance = Entities.FindByName(null, "!zoey")
-				s.zoey.playerInstance.SetReviveCount(0);
-				s.francis.playerInstance = Entities.FindByName(null, "!francis")
-				s.francis.playerInstance.SetReviveCount(0);
-				s.bill.playerInstance = Entities.FindByName(null, "!bill")
-				s.bill.playerInstance.SetReviveCount(0);
-				s.louis.playerInstance = Entities.FindByName(null, "!louis")
-				s.louis.playerInstance.SetReviveCount(0);
-			}else{
-				SessionState.survivors = {
-					nick = GetSurvivor("nick")
-					rochelle = GetSurvivor("rochelle")
-					coach = GetSurvivor("coach")
-					ellis = GetSurvivor("ellis")
-				}
-				local s = SessionState.survivors
-			
-				printl("L4D2 SURVIVORS FOUND!");
-				s.nick.playerInstance = Entities.FindByName(null, "!nick")
-				s.nick.playerInstance.SetReviveCount(0);
-				s.rochelle.playerInstance = Entities.FindByName(null, "!rochelle")
-				s.rochelle.playerInstance.SetReviveCount(0);
-				s.coach.playerInstance = Entities.FindByName(null, "!coach")
-				s.coach.playerInstance.SetReviveCount(0);
-				s.ellis.playerInstance = Entities.FindByName(null, "!ellis")
-				s.ellis.playerInstance.SetReviveCount(0);
+		if( IsL4D1Survivors() ){
+			SessionState.survivors = {
+				zoey = GetSurvivor("zoey")
+				francis = GetSurvivor("francis")
+				bill = GetSurvivor("bill")
+				louis = GetSurvivor("louis")
 			}
-		}
-		catch (e) {
-			// Hotfix for l4d1 survivors not found on map change. TODO: Fix this properly.
-			SessionState.survivors = null;
+			local s = SessionState.survivors
+		
+			printl("L4D1 SURVIVORS FOUND!");
+			s.zoey.playerInstance = Entities.FindByName(null, "!zoey")
+			s.zoey.playerInstance.SetReviveCount(0);
+			s.francis.playerInstance = Entities.FindByName(null, "!francis")
+			s.francis.playerInstance.SetReviveCount(0);
+			s.bill.playerInstance = Entities.FindByName(null, "!bill")
+			s.bill.playerInstance.SetReviveCount(0);
+			s.louis.playerInstance = Entities.FindByName(null, "!louis")
+			s.louis.playerInstance.SetReviveCount(0);
+		}else{
+			SessionState.survivors = {
+				nick = GetSurvivor("nick")
+				rochelle = GetSurvivor("rochelle")
+				coach = GetSurvivor("coach")
+				ellis = GetSurvivor("ellis")
+			}
+			local s = SessionState.survivors
+		
+			printl("L4D2 SURVIVORS FOUND!");
+			s.nick.playerInstance = Entities.FindByName(null, "!nick")
+			s.nick.playerInstance.SetReviveCount(0);
+			s.rochelle.playerInstance = Entities.FindByName(null, "!rochelle")
+			s.rochelle.playerInstance.SetReviveCount(0);
+			s.coach.playerInstance = Entities.FindByName(null, "!coach")
+			s.coach.playerInstance.SetReviveCount(0);
+			s.ellis.playerInstance = Entities.FindByName(null, "!ellis")
+			s.ellis.playerInstance.SetReviveCount(0);
 		}
 	}
 }
 
 function IsL4D1Survivors(){
 	local s = SessionState.survivors;
-	local foundL4D2 = false
-	
-	if( !Entities.FindByName(null, "!nick") ||
-		!Entities.FindByName(null, "!rochelle") ||
-		!Entities.FindByName(null, "!coach") ||
-		!Entities.FindByName(null, "!ellis") ){
-			foundL4D2 = true
+
+	local l4d1 = 	null != Entities.FindByName(null, "!zoey") ||
+				 	null != Entities.FindByName(null, "!francis") ||
+					null != Entities.FindByName(null, "!bill") ||
+					null != Entities.FindByName(null, "!louis")
+
+	local l4d2 = 	null != Entities.FindByName(null, "!nick") ||
+				 	null != Entities.FindByName(null, "!rochelle") ||
+					null != Entities.FindByName(null, "!coach") ||
+					null != Entities.FindByName(null, "!ellis") 
+
+	if (l4d2) {
+		return false;
 	}
-		
-	return !foundL4D2;
+	else if (l4d1) {
+		return true
+	}
+	else {
+		throw "Cannot find any survivors!"
+	}
 }
 
 // Add health onto a player, called when a zombie is killed.
-function AddPlayerHealth( player, healthAdd ){
+function AddPlayerHealth(player, healthAdd){
 	local healthNew = player.GetHealth();
 	healthNew += healthAdd;
 
@@ -223,9 +229,9 @@ function AddPlayerHealth( player, healthAdd ){
 }
 
 // Set everyones health decay on or off depending on passed boolean
-function SetAllVampirisms( arg ){
+function SetAllVampirisms(arg){
 	RefreshSurvivors();
-	
+
 	// Loop through the survivors
 	foreach( name, stats in SessionState.survivors ){
 		// Enable health decay
@@ -252,7 +258,6 @@ function DoMapCallbackChecks(){
 }
 
 function vampirism_poll_update(){
-
 	// If Vampirism is enabled
 	if( SessionState.vampirismEnabled ){
 		foreach( name, stats in SessionState.survivors ){
@@ -320,15 +325,24 @@ function OnGameEvent_door_open( args ){
 }
 
 function OnGameEvent_player_hurt( args ){
-	try{ //Wrap in try incase values are not contained within the args
-		local attacker = GetPlayerFromUserID( args.attacker );
-		local victim = GetPlayerFromUserID( args.userid );
-		local steal = args.dmg_health * SessionState.vampirismHealthStealMultiplier
+	local attacker = GetPlayerFromUserID( args.attacker );
+	local victim = GetPlayerFromUserID( args.userid );
+	local steal = args.dmg_health * SessionState.vampirismHealthStealMultiplier
+
+	if (attacker && victim) {
 		if( attacker.GetZombieType() == 9 && victim.GetZombieType() == 9 ){
 			AddPlayerHealth( attacker, steal );
 			printl( attacker.GetPlayerName()+" stole "+steal+" health points from "+victim.GetPlayerName() );
 		}
-	}catch( e ){}
+	} else {
+		if (!attacker) {
+			printl(format("Cannot find attacker from ID: %i. Maybe try args.attackerentid (%i)?", args.attacker, args.attackerentid))
+		}
+
+		if(!victim) {
+			printl(format("Cannot find victim from ID: %i", args.victim))
+		}
+	}
 }
 
 function OnGameEvent_zombie_death( args ){
