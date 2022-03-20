@@ -1,0 +1,1 @@
+Start "" powershell -NoProfile -Command "&{ Start-Process powershell -ArgumentList '-noexit -noprofile -File %~dp0\Build.ps1 -Mode Vpk -Watch' -Verb RunAs }"

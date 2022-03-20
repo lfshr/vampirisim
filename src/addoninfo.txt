@@ -1,0 +1,9 @@
+"AddonInfo"
+{
+     addonSteamAppID 550            // 550 is the app ID for Left 4 Dead 2
+     addontitle "Vampirism Mutation"
+     addonversion "1.3.1"
+     addonauthor "The Fish"
+     addonURL0 "http://steamcommunity.com/sharedfiles/filedetails/?id=127223178"                  // where people can download your VPK 
+     addonDescription ""
+}
