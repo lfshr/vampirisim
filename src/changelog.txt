@@ -1,5 +1,10 @@
 DD/MM/YYYY
 ----------
+20/03/2022
+	Actually fixed the damn thing!
+	Changed health from actual health to health decay
+	Upped common reward
+
 16/07/2017
 	Several stability improvements
 	Tanks and witches now revive incapacitated survivors
@@ -27,4 +32,4 @@ DD/MM/YYYY
 	-Opened up all coop campaigns
 
 14/02/2013
-	-Made the first version of the game! :3
+	-Made the first version of the game!
