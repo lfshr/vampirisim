@@ -1,8 +1,6 @@
 // Vampirism 1.2 By The Fish
 printl("---Starting Vampirism---\n---Made By The Fish---\n---To start the gamemode, leave the safe area---");
 
-IncludeScript("vslib");
-
 DirectorOptions <- {
 	ActiveChallenge = 1
 	cm_TempHealthOnly = true
